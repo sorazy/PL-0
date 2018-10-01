@@ -1,10 +1,7 @@
-// Soliman Alnaizy, UCFID: 3715450, Summer '18
-// COP 3402, Dr. Montagne
-// ==========================================================
-// ASSIGNMENT #4: ~~ T H E   V I R T U A L   M A C H I N E ~~
-// ==========================================================
-
-#include "systemsoftware.h"
+// Written by: Soliman Alnaizy
+// =================================================
+// PL-0: ~~ T H E   V I R T U A L   M A C H I N E ~~
+// =================================================
 
 // Taken from the hw1Resources pdf
 void printStack(int sp, int bp, int* stack, int lex)

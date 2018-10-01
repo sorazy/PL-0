@@ -8,18 +8,6 @@
 #include <limits.h>
 #include "systemsoftware.h"
 
-// Creates and returns a new HashTable of length 3
-HashTable *createHashTable(void)
-{
-   HashTable *newTable = malloc(sizeof(HashTable));
-   newTable->table = calloc(3, sizeof(Token*));
-   newTable->size = 0;
-   newTable->capacity =  3;
-   newTable->prime = 0;
-
-   return newTable;
-}
-
 Token *createToken(int kind, char *name, int value, int level, int address, int mark)
 {
    Token *t = malloc(sizeof(Token));
@@ -34,59 +22,9 @@ Token *createToken(int kind, char *name, int value, int level, int address, int 
    return t;
 }
 
-// My own hash function that multiplies the ASCII value of each letter in the
-// Tokens name by a descending power of 3
-int hashFunction(char *str)
-{
-   int i, hash = 0;
-   
-   for (i = 0; str[i] != '\0'; ++i)
-      hash = 31 * hash + str[i];
 
-   // To make sure that the hash value is positive
-   if (hash < 0)
-      hash *= -1;
 
-   return hash;
-}
 
-// Insert the Token t into the table array using quadratic probing. Keep 
-// searching untill you find a spot that's not NULL, then insert the Token
-void quadraticProbe(Token **table, Token *t, int len)
-{
-   int i, hash = hashFunction(t->name);
-
-   for (i = 1; table[hash % len] != NULL; ++i)
-      hash += 2 * i - 1;
-
-   table[hash % len] = t;
-
-   return;
-}
-
-// Expands the table to the next prime in the static int array at the top
-void expandTable(HashTable *h)
-{
-   int i, hash, newLength = primes[h->prime + 1];
-   Token **newTable = calloc(newLength, sizeof(Token*));
-
-   // Go through the old table and move them to the new table
-   for (i = 0; i < h->capacity; ++i)
-   {
-      if (h->table[i] == NULL)
-         continue;
-
-      quadraticProbe(newTable, h->table[i], newLength);
-   }
-
-   // Free the old table and update struct members
-   free(h->table);
-   h->table = newTable;
-   h->capacity = newLength;
-   h->prime++;
-
-   return;
-}
 
 // Preforms a tail insert on a LinkedList
 void insertList(LinkedList *list, Token *t)
@@ -109,150 +47,6 @@ void insertList(LinkedList *list, Token *t)
    
    list->size++;
    return;
-}
-
-// Creates a token with the information passed into it, and inserts it into a HashTable
-HashTable *insertToken(HashTable *h, int kind, char *name, int value, int level, int address, int mark)
-{
-   int hash;
-   Token* t = NULL;
-
-   if (name == NULL)
-      return NULL;
-
-   if (h == NULL)
-      h = createHashTable();
-
-   t = createToken(kind, name, value, level, address, mark);
-
-   hash = hashFunction(t->name);
-
-   // Expand the HashTable if this insertion will cause the table to become
-   // more than half full
-   if (++h->size > (h->capacity / 2))
-      expandTable(h);
-
-   // Insert into the table using quadratic probing
-   quadraticProbe(h->table, t, h->capacity);
-
-   return h;
-}
-
-// Insert an a token that was already created into the HashTable
-HashTable *insertFullToken(HashTable *h, Token *t)
-{
-   int hash = hashFunction(t->name);
-
-   // Expand the HashTable if this insertion will cause the table to become
-   // more than half full
-   if (++h->size > (h->capacity / 2))
-      expandTable(h);
-
-   // Insert into the table using quadratic probing
-   quadraticProbe(h->table, t, h->capacity);
-
-   return h;
-}
-
-// Returns the token that has the name of str. If token is not in table, the
-// function returns NULL
-Token *get(HashTable *h, char *str)
-{
-   int i = 1, hash = hashFunction(str), len = h->capacity;
-
-   if (h == NULL)
-      return NULL;
-
-   // Use quadratic probing to look for the token
-   while (h->table[hash % len] != NULL)
-   {
-      if (!strcmp(h->table[hash % len]->name, str))
-         return h->table[hash % len];
-      else
-         hash += 2 * i++ - 1;
-   }
-
-   return NULL;
-}
-
-// Returns a token with name of str and with a level equal to depth
-Token *getTokenWithSameLevel(HashTable *h, Token *t, int depth)
-{
-   int i = 1, hash = hashFunction(t->name), len = h->capacity;
-   Token *temp;
-
-   if (h == NULL)
-      return NULL;
-
-   // Use quadratic probing to look for the token, get the variable with the closes depth
-   // Looking for a token with name t->name, and depth, then depth - 1, then depth - 2, etc...
-      while (h->table[hash % len] != NULL)
-      {
-         temp = h->table[hash % len];
-         if (!strcmp(temp->name, t->name) && (temp->level == depth))
-            return h->table[hash % len];
-         else
-            hash += 2 * i++ - 1;
-      }
-  
-   return NULL;
-}
-
-// Returns a token with name of str and with a level equal or less than to depth
-Token *getTokenFromTable(HashTable *h, Token *t, int depth)
-{
-   int i = 1, hash, len = h->capacity;
-   Token *temp;
-
-   if (h == NULL)
-      return NULL;
-
-   // Use quadratic probing to look for the token, get the variable with the closes depth
-   // Looking for a token with name t->name, and depth, then depth - 1, then depth - 2, etc...
-   while (depth >= 0)
-   {
-      hash = hashFunction(t->name);
-
-      while (h->table[hash % len] != NULL)
-      {
-         temp = h->table[hash % len];
-         if (!strcmp(temp->name, t->name) && (temp->level == depth))
-            return h->table[hash % len];
-         else
-            hash += 2 * i++ - 1;
-      }
-   
-      --depth;
-   }
-
-   return NULL;
-}
-
-// Call the get function. If get returns NULL, that means it's not in the table
-int contains(HashTable *h, char *str)
-{
-   if (get(h, str) == NULL)
-      return 0;
-   else
-      return 1;
-}
-
-// Call the get function. If get returns NULL, that means it's not in the table
-int containsTokenWithSameLevel(HashTable *h, Token *t, int depth)
-{
-   if (getTokenWithSameLevel(h, t, depth) == NULL)
-      return 0;
-   else
-      return 1;
-}
-
-// Call the get function. If get returns NULL, that means it's not in the table
-int containsTokenFromTable(HashTable *h, Token *t, int depth)
-{
-   if (getTokenFromTable(h, t, depth) == NULL)
-      return 0;
-   else
-      return 1;
 }
 
 // Checks if a passed string is made entirely of numbers
@@ -281,44 +75,44 @@ void printTable(HashTable *h)
 }
 
 // Just inserts a bunch of tokens into the HashTable
-void createPL0Table(HashTable *tokenTable)
+void insertKeywords(HashTable *h)
 {
-   tokenTable = insertToken(tokenTable, 4, "+", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 5, "-", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 6, "*", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 7, "/", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 8, "odd", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 9, "=", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 10, "<>", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 11, "<", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 12, "<=", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 13, ">", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 14, ">=", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 15, "(", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 16, ")", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 17, ",", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 18, ";", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 19, ".", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 20, ":=", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 21, "begin", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 22, "end", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 23, "if", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 24, "then", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 25, "while", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 26, "do", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 27, "call", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 28, "const", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 29, "var", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 30, "procedure", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 31, "write", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 32, "read", 0, 0, 0, 0);
-   tokenTable = insertToken(tokenTable, 33, "else", 0, 0, 0, 0);
+   h = insertToken(h, 4, "+", 0, 0, 0, 0);
+   h = insertToken(h, 5, "-", 0, 0, 0, 0);
+   h = insertToken(h, 6, "*", 0, 0, 0, 0);
+   h = insertToken(h, 7, "/", 0, 0, 0, 0);
+   h = insertToken(h, 8, "odd", 0, 0, 0, 0);
+   h = insertToken(h, 9, "=", 0, 0, 0, 0);
+   h = insertToken(h, 10, "<>", 0, 0, 0, 0);
+   h = insertToken(h, 11, "<", 0, 0, 0, 0);
+   h = insertToken(h, 12, "<=", 0, 0, 0, 0);
+   h = insertToken(h, 13, ">", 0, 0, 0, 0);
+   h = insertToken(h, 14, ">=", 0, 0, 0, 0);
+   h = insertToken(h, 15, "(", 0, 0, 0, 0);
+   h = insertToken(h, 16, ")", 0, 0, 0, 0);
+   h = insertToken(h, 17, ",", 0, 0, 0, 0);
+   h = insertToken(h, 18, ";", 0, 0, 0, 0);
+   h = insertToken(h, 19, ".", 0, 0, 0, 0);
+   h = insertToken(h, 20, ":=", 0, 0, 0, 0);
+   h = insertToken(h, 21, "begin", 0, 0, 0, 0);
+   h = insertToken(h, 22, "end", 0, 0, 0, 0);
+   h = insertToken(h, 23, "if", 0, 0, 0, 0);
+   h = insertToken(h, 24, "then", 0, 0, 0, 0);
+   h = insertToken(h, 25, "while", 0, 0, 0, 0);
+   h = insertToken(h, 26, "do", 0, 0, 0, 0);
+   h = insertToken(h, 27, "call", 0, 0, 0, 0);
+   h = insertToken(h, 28, "const", 0, 0, 0, 0);
+   h = insertToken(h, 29, "var", 0, 0, 0, 0);
+   h = insertToken(h, 30, "procedure", 0, 0, 0, 0);
+   h = insertToken(h, 31, "write", 0, 0, 0, 0);
+   h = insertToken(h, 32, "read", 0, 0, 0, 0);
+   h = insertToken(h, 33, "else", 0, 0, 0, 0);
 
    return;
 }
 
 // Prints the contents of a file to the screen and resets the file pointer
-void printFile(char *filename)
+void dumpSourceCode(char *filename)
 {
    FILE *ifp = fopen(filename, "r");
 

@@ -1,8 +1,4 @@
-// Soliman Alnaizy, UCFID: 3715450, Summer '18
-// COP 3402, Dr. Montagne
-// ===================================================================
-// ASSIGNMENT #4: ~~ P A R S E R   &   C O D E   G E N E R A T I O N~~
-// ===================================================================
+// Soliman Alnaizy
 
 #include <ctype.h>
 #include "systemsoftware.h"

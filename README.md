@@ -2,7 +2,8 @@
 ## Inroduction
 PL/0 is a programming language that was invented for educational purposes. It is a relatively simple language that's used as a gateway into the world of compilers. There's also a lot to be discussed when it comees to the essence of how programming languages are written and understood by computers.
 
-## EBNF of PL/0 ```
+## EBNF of PL/0
+```
 program ::= block "." . 
 block ::= const-declaration  var-declaration  procedure-declaration statement.	
 constdeclaration ::= ["const" ident "=" number {"," ident "=" number} ";"].	
